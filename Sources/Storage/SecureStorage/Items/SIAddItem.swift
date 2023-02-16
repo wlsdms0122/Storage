@@ -9,19 +9,14 @@ import Foundation
 
 public struct SIAddItem {
     // MARK: - Property
-    let attributes: CFDictionary
+    public let attributes: [any SIAttributes]
     
     // MARK: - Initializer
     public init(
         class: any SIClass,
         value: SIValue
     ) {
-        let attributes: [any SIAttributes] = [`class`, value]
-        self.attributes = Dictionary<String, Any>(
-            uniqueKeysWithValues: attributes
-                .flatMap { $0.attributes }
-                .map { ($0, $1) }
-        ) as CFDictionary
+        self.attributes = [`class`, value]
     }
     
     // MARK: - Public

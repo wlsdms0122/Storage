@@ -9,20 +9,14 @@ import Foundation
 
 public struct SIMatchItem {
     // MARK: - Property
-    let attributes: CFDictionary
+    public let attributes: [any SIAttributes]
     
     // MARK: - Initializer
     public init(
         queries: [any SIAttributes],
         return: SIReturn
     ) {
-        let attributes: [any SIAttributes] = queries + [`return`]
-        self.attributes = Dictionary<String, Any>(
-            uniqueKeysWithValues: attributes
-                .compactMap { $0 }
-                .flatMap { $0.attributes }
-                .map { ($0, $1) }
-        ) as CFDictionary
+        self.attributes = queries + [`return`]
     }
     
     // MARK: - Public
