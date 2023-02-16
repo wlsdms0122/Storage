@@ -72,7 +72,7 @@ public class KeychainStorage: SecureStorage {
     }
     
     public func add(_ item: SIAddItem) throws {
-        let status = SecItemAdd(item.attributes, nil)
+        let status = SecItemAdd(item.attributes.cfDictionary, nil)
         
         guard status == errSecSuccess else {
             throw SecureStorageError.underlying(status)
@@ -81,7 +81,7 @@ public class KeychainStorage: SecureStorage {
     
     public func match(_ item: SIMatchItem) throws -> Data {
         var result: CFTypeRef?
-        let status = SecItemCopyMatching(item.attributes, &result)
+        let status = SecItemCopyMatching(item.attributes.cfDictionary, &result)
         
         guard status == errSecSuccess else {
             throw SecureStorageError.underlying(status)
@@ -95,7 +95,7 @@ public class KeychainStorage: SecureStorage {
     }
     
     public func update(_ item: SIUpdateItem) throws {
-        let status = SecItemUpdate(item.query, item.attributes)
+        let status = SecItemUpdate(item.queries.cfDictionary, item.attributes.cfDictionary)
         
         guard status == errSecSuccess else {
             throw SecureStorageError.underlying(status)
@@ -103,7 +103,7 @@ public class KeychainStorage: SecureStorage {
     }
     
     public func delete(_ item: SIDeleteItem) throws {
-        let status = SecItemDelete(item.query)
+        let status = SecItemDelete(item.queries.cfDictionary)
         
         guard status == errSecSuccess else {
             throw SecureStorageError.underlying(status)

@@ -9,23 +9,16 @@ import Foundation
 
 public struct SIUpdateItem {
     // MARK: - Property
-    let query: CFDictionary
-    let attributes: CFDictionary
+    public let queries: [any SIAttributes]
+    public let attributes: [any SIAttributes]
     
     // MARK: - Initializer
     public init(
         queries: [any SIAttributes],
         values: [any SIAttributes]
     ) {
-        query = Dictionary<String, Any>(
-            uniqueKeysWithValues: queries.flatMap { $0.attributes }
-                .map { ($0, $1) }
-        ) as CFDictionary
-        
-        attributes = Dictionary<String, Any>(
-            uniqueKeysWithValues: values.flatMap { $0.attributes }
-                .map { ($0, $1) }
-        ) as CFDictionary
+        self.queries = queries
+        self.attributes = values
     }
     
     // MARK: - Public
