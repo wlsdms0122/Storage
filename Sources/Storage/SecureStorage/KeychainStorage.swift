@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class KeychainStorage: SecureStorage {
+open class KeychainStorage: SecureStorage {
     // MARK: - Property
     private let service: String
     

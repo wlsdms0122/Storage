@@ -12,7 +12,7 @@ open class UserDefaultStorage: Storage {
     private let userDefaults: UserDefaults
     
     // MARK: - Initializer
-    init(userDefsults: UserDefaults = .standard) {
+    public init(userDefsults: UserDefaults = .standard) {
         self.userDefaults = userDefsults
     }
     
