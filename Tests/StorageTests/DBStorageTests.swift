@@ -1,5 +1,5 @@
 //
-//  DBStorageTests.swift
+//  DBStorableTests.swift
 //
 //
 //  Created by jsilver on 6/15/24.
@@ -9,7 +9,7 @@ import Foundation
 import XCTest
 @testable import Storage
 
-final class DBStorageTests: XCTestCase {
+final class DBStorableTests: XCTestCase {
     // MARK: - Property
     
     // MARK: - Lifecycle
@@ -18,13 +18,11 @@ final class DBStorageTests: XCTestCase {
     func test_that_initialize_calls_connect_in_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut = AnyDBStorage(
-            ProxyDBStorage(
-                connect: { 
-                    connection.value.append(0)
-                    return connection
-                }
-            )
+        let sut: any DBStorable = ProxyDBStorage(
+            connect: {
+                connection.value.append(0)
+                return connection
+            }
         )
         
         // When
@@ -37,11 +35,9 @@ final class DBStorageTests: XCTestCase {
     func test_that_initialize_calls_migration_in_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut = AnyDBStorage(
-            ProxyDBStorage(
-                connect: { connection },
-                migrate: { _ in connection.value.append(0) }
-            )
+        let sut: any DBStorable = ProxyDBStorage(
+            connect: { connection },
+            migrate: { _ in connection.value.append(0) }
         )
         
         // When
@@ -54,10 +50,8 @@ final class DBStorageTests: XCTestCase {
     func test_that_transaction_is_applied_when_run_on_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut = AnyDBStorage(
-            ProxyDBStorage(
-                connect: { connection }
-            )
+        let sut: any DBStorable<ProxyConnection> = ProxyDBStorage(
+            connect: { connection }
         )
         try await sut.initialize()
         
@@ -73,10 +67,8 @@ final class DBStorageTests: XCTestCase {
     func test_that_throws_error_when_run_called_without_initializing_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut = AnyDBStorage(
-            ProxyDBStorage(
-                connect: { connection }
-            )
+        let sut: any DBStorable<ProxyConnection> = ProxyDBStorage(
+            connect: { connection }
         )
         try await sut.initialize()
         
@@ -92,11 +84,9 @@ final class DBStorageTests: XCTestCase {
     func test_that_reset_clears_all_data_in_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([0])
-        let sut = AnyDBStorage(
-            ProxyDBStorage(
-                connect: { connection },
-                reset: { _ in connection.value.removeAll() }
-            )
+        let sut: any DBStorable<ProxyConnection> = ProxyDBStorage(
+            connect: { connection },
+            reset: { _ in connection.value.removeAll() }
         )
         try await sut.initialize()
         
