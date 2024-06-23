@@ -16,7 +16,7 @@ class ProxyConnection<Connection> {
     }
 }
 
-class ProxyDBStorage<Connection>: DBStorage {
+class ProxyDBStorage<Connection>: DBStorable {
     private var connection: Connection?
     
     private let _connect: () throws -> Connection
