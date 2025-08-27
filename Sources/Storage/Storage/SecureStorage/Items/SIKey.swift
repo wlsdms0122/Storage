@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct SIKey: Hashable {
+public struct SIKey: Hashable, Sendable {
     // MARK: - Property
     public let rawValue: String
     
@@ -76,7 +76,7 @@ public extension SIKey {
     static let attributeCanUnwrap: Self = .init(kSecAttrCanUnwrap)
     
     // Synchronizable
-    static let synchronizableAny = kSecAttrSynchronizableAny
+    static nonisolated(unsafe) let synchronizableAny = kSecAttrSynchronizableAny
     
     // Match
     static let matchPolicy: Self = .init(kSecMatchPolicy)

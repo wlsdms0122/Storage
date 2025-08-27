@@ -8,7 +8,7 @@
 import Foundation
 
 public struct SIValue: SIAttributes {
-    public struct Key: Hashable {
+    public struct Key: Hashable, Sendable {
         // MARK: - Property
         public let rawValue: String
         
