@@ -11,7 +11,7 @@ public protocol SIClass: SIAttributes { }
 
 // MARK: - Generic Password
 public struct SIClassGenericPassword: SIClass {
-    public struct Key: Hashable {
+    public struct Key: Hashable, Sendable {
         // MARK: - Property
         public let rawValue: String
         
@@ -66,7 +66,7 @@ public extension SIClassGenericPassword.Key {
 
 // MARK: - Internet Password
 public struct SIClassInternetPassword: SIClass {
-    public struct Key: Hashable {
+    public struct Key: Hashable, Sendable {
         // MARK: - Property
         let rawValue: String
         
@@ -123,7 +123,7 @@ public extension SIClassInternetPassword.Key {
 
 // MARK: - Certificate
 public struct SIClassCertificate: SIClass {
-    public struct Key: Hashable {
+    public struct Key: Hashable, Sendable {
         // MARK: - Property
         let rawValue: String
         
@@ -171,7 +171,7 @@ public extension SIClassCertificate.Key {
 
 // MARK: - Key
 public struct SIClassKey: SIClass {
-    public struct Key: Hashable {
+    public struct Key: Hashable, Sendable {
         // MARK: - Property
         public let rawValue: String
         
@@ -226,7 +226,7 @@ public extension SIClassKey.Key {
 
 // MARK: - Identity
 public struct SIClassIdentity: SIClass {
-    public struct Key: Hashable {
+    public struct Key: Hashable, Sendable {
         // MARK: - Property
         public let rawValue: String
         

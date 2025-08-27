@@ -8,7 +8,7 @@
 import Foundation
 
 public struct SIMatch: SIAttributes {
-    public struct Value {
+    public struct Value: Sendable {
         // MARK: - Property
         public let rawValue: String
         
