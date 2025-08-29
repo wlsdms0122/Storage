@@ -8,9 +8,9 @@
 import Foundation
 import Storage
 
-class MemoryStorage: Storage {
+final class MemoryStorage: Storage {
     // MARK: - Property
-    var storage: [String: Data]
+    nonisolated(unsafe) var storage: [String: Data]
     
     // MARK: - Initializer
     init(storage: [String: any Codable] = [:]) {

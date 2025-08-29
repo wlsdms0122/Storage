@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol AsyncStorage {
+public protocol AsyncStorage: Sendable {
     /// Create the item for key asynchronously.
     func create(_ data: Data, forKey key: String, completion: (Result<Void, Error>) -> Void)
     /// Read the item for key asynchronously.

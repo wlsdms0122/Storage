@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum SecureStorageError: Error {
+public enum SecureStorageError: Error, Sendable {
     /// Unknown error.
     case unknown
     /// Secure error.

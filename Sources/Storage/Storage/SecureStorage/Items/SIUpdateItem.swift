@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct SIUpdateItem {
+public struct SIUpdateItem: Sendable {
     // MARK: - Property
     public let queries: [any SIAttributes]
     public let attributes: [any SIAttributes]

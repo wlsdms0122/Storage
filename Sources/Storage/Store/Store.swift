@@ -11,7 +11,7 @@ import Combine
 @propertyWrapper
 public struct Store<Value: Codable> {
     // MARK: - Property
-    private let queue = DispatchQueue(label: "com.jsilver.store")
+    private let queue = DispatchQueue(label: "com.storage.store")
     
     private let storage: any Storage
     private let key: String

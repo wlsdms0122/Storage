@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol DBTransaction {
+public protocol DBTransaction: Sendable {
     associatedtype Connection
     associatedtype Parameter
     associatedtype Result

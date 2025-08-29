@@ -26,7 +26,7 @@ public struct SIClassGenericPassword: SIClass {
     }
     
     // MARK: - Property
-    public let attributes: [String: Any]
+    public nonisolated(unsafe) let attributes: [String: Any]
     
     // MARK: - Initializer
     public init(_ attributes: [Key: Any]) {
@@ -80,7 +80,7 @@ public struct SIClassInternetPassword: SIClass {
         // MARK: - Private
     }
     
-    public let attributes: [String: Any]
+    public nonisolated(unsafe) let attributes: [String: Any]
     
     // MARK: - Initializer
     public init(_ attributes: [Key: Any]) {
@@ -137,7 +137,7 @@ public struct SIClassCertificate: SIClass {
         // MARK: - Private
     }
     
-    public let attributes: [String: Any]
+    public nonisolated(unsafe) let attributes: [String: Any]
     
     // MARK: - Initializer
     public init(_ attributes: [Key: Any]) {
@@ -185,7 +185,7 @@ public struct SIClassKey: SIClass {
         // MARK: - Private
     }
     
-    public let attributes: [String: Any]
+    public nonisolated(unsafe) let attributes: [String: Any]
     
     // MARK: - Initializer
     public init(_ attributes: [Key: Any]) {
@@ -241,7 +241,7 @@ public struct SIClassIdentity: SIClass {
     }
     
         // MARK: - Property
-    public let attributes: [String: Any]
+    public nonisolated(unsafe) let attributes: [String: Any]
     
     // MARK: - Initializer
     public init(_ attributes: [Key: Any]) {

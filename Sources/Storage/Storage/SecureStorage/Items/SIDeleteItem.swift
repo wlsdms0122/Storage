@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct SIDeleteItem {
+public struct SIDeleteItem: Sendable {
     // MARK: - Property
     public let queries: [any SIAttributes]
     
