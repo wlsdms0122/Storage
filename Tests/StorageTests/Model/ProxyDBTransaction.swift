@@ -8,13 +8,13 @@
 import Foundation
 @testable import Storage
 
-struct ProxyDBTransaction<Connection, Parameter, Result>: DBTransaction {
+struct ProxyDBTransaction<Connection, Parameter: Sendable, Result>: DBTransaction {
     // MARK: - Property
     let parameter: Parameter
-    private let _execute: (Parameter, Connection) -> Result
+    private let _execute: @Sendable (Parameter, Connection) -> Result
     
     // MARK: - Initializer
-    init(_ parameter: Parameter, execute: @escaping (Parameter, Connection) -> Result) {
+    init(_ parameter: Parameter, execute: @escaping @Sendable (Parameter, Connection) -> Result) {
         self.parameter = parameter
         self._execute = execute
     }

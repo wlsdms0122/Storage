@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol SIAttributes {
+public protocol SIAttributes: Sendable {
     associatedtype Key: Hashable = String
     associatedtype Value = Any
     

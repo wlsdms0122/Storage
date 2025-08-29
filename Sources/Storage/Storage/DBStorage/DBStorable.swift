@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol DBStorable<Connection> {
+public protocol DBStorable<Connection>: Sendable {
     associatedtype Connection
     
     func connect() async throws -> Connection

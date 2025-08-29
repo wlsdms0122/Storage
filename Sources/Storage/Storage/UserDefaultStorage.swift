@@ -7,9 +7,9 @@
 
 import Foundation
 
-open class UserDefaultStorage: Storage {
+final class UserDefaultStorage: Storage {
     // MARK: - Property
-    private let userDefaults: UserDefaults
+    private nonisolated(unsafe) let userDefaults: UserDefaults
     
     // MARK: - Initializer
     public init(userDefaults: UserDefaults = .standard) {

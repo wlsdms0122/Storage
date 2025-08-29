@@ -8,25 +8,25 @@
 import Foundation
 @testable import Storage
 
-class ProxyConnection<Connection> {
-    var value: Connection
+final class ProxyConnection<Connection: Sendable>: Sendable {
+    nonisolated(unsafe) var value: Connection
     
     init(_ value: Connection) {
         self.value = value
     }
 }
 
-class ProxyDBStorage<Connection>: DBStorable {
-    private var connection: Connection?
+final class ProxyDBStorage<Connection: Sendable>: DBStorable {
+    private nonisolated(unsafe) var connection: Connection?
     
-    private let _connect: () throws -> Connection
-    private let _migrate: (Connection) async throws -> Void
-    private let _reset: (Connection?) async throws -> Void
+    private let _connect: @Sendable () throws -> Connection
+    private let _migrate: @Sendable (Connection) async throws -> Void
+    private let _reset: @Sendable (Connection?) async throws -> Void
     
     init(
-        connect: @escaping () throws -> Connection,
-        migrate: @escaping (Connection) async throws -> Void = { _ in },
-        reset: @escaping (Connection?) async throws -> Void = { _ in }
+        connect: @escaping @Sendable () throws -> Connection,
+        migrate: @escaping @Sendable (Connection) async throws -> Void = { _ in },
+        reset: @escaping @Sendable (Connection?) async throws -> Void = { _ in }
     ) {
         self._connect = connect
         self._migrate = migrate

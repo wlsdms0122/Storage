@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum StorageError: Error {
+public enum StorageError: Error, Sendable {
     /// Unknown error.
     case unknown
     /// Item not found for key.

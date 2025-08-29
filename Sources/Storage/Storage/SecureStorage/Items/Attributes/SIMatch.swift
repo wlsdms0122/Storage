@@ -23,7 +23,7 @@ public struct SIMatch: SIAttributes {
     }
     
     // MARK: - Property
-    public let attributes: [String: Any]
+    public nonisolated(unsafe) let attributes: [String: Any]
     
     // MARK: - Initializer
     public init(_ value: Value) {

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol Storage {
+public protocol Storage: Sendable {
     /// Create the item for key.
     func create(_ data: Data, forKey key: String) throws
     /// Read the item for key.

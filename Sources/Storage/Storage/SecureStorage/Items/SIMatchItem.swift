@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct SIMatchItem {
+public struct SIMatchItem: Sendable {
     // MARK: - Property
     public let attributes: [any SIAttributes]
     
