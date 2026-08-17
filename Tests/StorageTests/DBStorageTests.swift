@@ -81,6 +81,43 @@ final class DBStorableTests: XCTestCase {
         XCTAssertEqual(connection.value.count, 1)
     }
     
+    func test_that_storage_own_execute_is_called_through_existential() async throws {
+        // Given
+        let connection = ProxyConnection<[Int]>([])
+        let calls = ProxyConnection<[Int]>([])
+        let sut: any DBStorable<ProxyConnection<[Int]>> = OverridingDBStorage(
+            connect: { connection },
+            execute: { calls.value.append(0) }
+        )
+
+        // When
+        try await sut.run(ProxyDBTransaction(true) { parameter, connection in
+            connection.value.append(0)
+        })
+
+        // Then
+        XCTAssertEqual(calls.value.count, 1)
+        XCTAssertEqual(connection.value.count, 1)
+    }
+
+    func test_that_hooks_are_called_when_storage_takes_over_execute() async throws {
+        // Given
+        let connection = ProxyConnection<[Int]>([])
+        let hooks = ProxyConnection<[String]>([])
+        let sut: any DBStorable<ProxyConnection<[Int]>> = OverridingDBStorage(
+            connect: { connection },
+            hook: { hooks.value.append($0) }
+        )
+
+        // When
+        try await sut.run(ProxyDBTransaction(true) { parameter, connection in
+            connection.value.append(0)
+        })
+
+        // Then
+        XCTAssertEqual(hooks.value, ["willRun", "didRun"])
+    }
+
     func test_that_reset_clears_all_data_in_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([0])
