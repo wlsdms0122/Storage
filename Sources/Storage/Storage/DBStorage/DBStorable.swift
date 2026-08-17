@@ -24,10 +24,6 @@ public extension DBStorable {
         try await migrate(connection: try await connect())
     }
     
-    func reset() async throws {
-        try await reset()
-    }
-    
     @discardableResult
     func run<T: DBTransaction>(_ transaction: T) async throws -> T.Result where T.Connection == Connection {
         storage(self, willRun: transaction)
