@@ -51,4 +51,11 @@ final class ProxyDBStorage<Connection: Sendable>: DBStorable {
     func reset() async throws {
         try await _reset(connection)
     }
+    
+    // The connection is the transaction here — the shape of a database that does
+    // not hand out a separate handle, and that has nothing cheaper to offer a
+    // read.
+    func open<T>(readOnly: Bool, _ body: @escaping @Sendable (Connection) throws -> T) async throws -> T {
+        try body(try connect())
+    }
 }

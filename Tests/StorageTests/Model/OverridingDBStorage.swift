@@ -8,52 +8,66 @@
 import Foundation
 @testable import Storage
 
-/// A storage that answers `execute` itself instead of taking the default — the
-/// shape a storage needs when running a transaction has to do more than the
-/// protocol's own answer does. Everything else is the plain storage, so the two
-/// doubles cannot drift apart.
-final class OverridingDBStorage<Connection: Sendable>: DBStorable {
-    // MARK: - Property
-    private let base: ProxyDBStorage<Connection>
+/// A storage whose transaction is not its connection, and which separates the
+/// read-only one — the shape this abstraction exists for. It records what it
+/// opened, so a test can say which kind an operation was given.
+final class OverridingDBStorage: DBStorable {
+    struct Handle {
+        // MARK: - Property
+        let readOnly: Bool
 
-    private let _execute: @Sendable () -> Void
+        // MARK: - Initializer
+        // MARK: - Public
+        // MARK: - Private
+    }
+
+    // MARK: - Property
+    private nonisolated(unsafe) var connection: ProxyConnection<[Int]>?
+
+    private let _connect: @Sendable () throws -> ProxyConnection<[Int]>
+    private let _opened: @Sendable (String) -> Void
     private let _hook: @Sendable (String) -> Void
 
     // MARK: - Initializer
     init(
-        connect: @escaping @Sendable () throws -> Connection,
-        execute: @escaping @Sendable () -> Void = { },
+        connect: @escaping @Sendable () throws -> ProxyConnection<[Int]>,
+        opened: @escaping @Sendable (String) -> Void = { _ in },
         hook: @escaping @Sendable (String) -> Void = { _ in }
     ) {
-        self.base = ProxyDBStorage(connect: connect)
-        self._execute = execute
+        self._connect = connect
+        self._opened = opened
         self._hook = hook
     }
 
     // MARK: - Lifecycle
-    func connect() throws -> Connection {
-        try base.connect()
+    func connect() throws -> ProxyConnection<[Int]> {
+        if let connection {
+            return connection
+        }
+
+        let connection = try _connect()
+        self.connection = connection
+
+        return connection
     }
 
-    func migrate(connection: Connection) async throws {
-        try await base.migrate(connection: connection)
-    }
+    func migrate(connection: ProxyConnection<[Int]>) async throws { }
 
     func reset() async throws {
-        try await base.reset()
+        connection = nil
     }
 
-    func execute<T: DBTransaction>(_ transaction: T, on connection: Connection) async throws -> T.Result where T.Connection == Connection {
-        _execute()
+    func open<T>(readOnly: Bool, _ body: @escaping @Sendable (Handle) throws -> T) async throws -> T {
+        _opened(readOnly ? "read" : "write")
 
-        return try await transaction.execute(connection)
+        return try body(Handle(readOnly: readOnly))
     }
 
-    func storage<T: DBTransaction>(_ storage: OverridingDBStorage, willRun transaction: T) where T.Connection == Connection {
+    func storage<T: DBOperation>(_ storage: OverridingDBStorage, willRun operation: T) where T.Transaction == Handle {
         _hook("willRun")
     }
 
-    func storage<T: DBTransaction>(_ storage: OverridingDBStorage, didRun transaction: T, withResult result: Result<T.Result, any Error>) where T.Connection == Connection {
+    func storage<T: DBOperation>(_ storage: OverridingDBStorage, didRun operation: T, withResult result: Result<T.Result, any Error>) where T.Transaction == Handle {
         _hook("didRun")
     }
 }

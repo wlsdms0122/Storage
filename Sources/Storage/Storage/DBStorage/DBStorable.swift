@@ -7,55 +7,83 @@
 
 import Foundation
 
-public protocol DBStorable<Connection>: Sendable {
+public protocol DBStorable<Connection, Transaction>: Sendable {
     associatedtype Connection
-    
+    /// The open transaction this storage hands out — the commit boundary that
+    /// operations run inside.
+    associatedtype Transaction
+
     func connect() async throws -> Connection
     func migrate(connection: Connection) async throws
-    
+
     func reset() async throws
-    
-    /// Runs the transaction on an open connection. Defaults to the transaction's
-    /// own `execute`; a storage that has to hold something around every
-    /// transaction — a lock, a queue, a metric — holds it here.
+
+    /// Opens one transaction and hands it to the body. Everything the body does
+    /// commits together or not at all — there is no default, because only the
+    /// storage knows how its database begins and commits one.
     ///
-    /// This is the step a storage takes over, rather than `run` itself, so that
-    /// opening the connection and calling the hooks stay where they are and a
-    /// storage cannot lose them by answering this.
-    func execute<T: DBTransaction>(_ transaction: T, on connection: Connection) async throws -> T.Result where T.Connection == Connection
-    
-    func storage<T: DBTransaction>(_ storage: Self, willRun transaction: T) where T.Connection == Connection
-    func storage<T: DBTransaction>(_ storage: Self, didRun transaction: T, withResult result: Result<T.Result, any Error>) where T.Connection == Connection
+    /// This is what a storage answers. What a caller reaches for is `run`, which
+    /// is defined in terms of this and is where the hooks below are called; a
+    /// caller that opened its own transaction would leave them out.
+    ///
+    /// The body is synchronous: a transaction is a serialized session, and the
+    /// databases this abstracts hand out a handle valid only inside such a
+    /// block. Waiting for the transaction is the caller's, and stays async.
+    ///
+    /// `readOnly` is what the caller's operation declared, passed on so the
+    /// storage can open a cheaper transaction for it — skip the write lock, take
+    /// a reader from the pool, route to a replica. A database that does not
+    /// distinguish the two ignores it, in the open.
+    func open<T>(readOnly: Bool, _ body: @escaping @Sendable (Transaction) throws -> T) async throws -> T
+
+    func storage<T: DBOperation>(_ storage: Self, willRun operation: T) where T.Transaction == Transaction
+    func storage<T: DBOperation>(_ storage: Self, didRun operation: T, withResult result: Result<T.Result, any Error>) where T.Transaction == Transaction
 }
 
 public extension DBStorable {
     func initialize() async throws {
         try await migrate(connection: try await connect())
     }
-    
-    func execute<T: DBTransaction>(_ transaction: T, on connection: Connection) async throws -> T.Result where T.Connection == Connection {
-        try await transaction.execute(connection)
-    }
-    
+
+    /// An operation on its own — a transaction holding exactly this one.
     @discardableResult
-    func run<T: DBTransaction>(_ transaction: T) async throws -> T.Result where T.Connection == Connection {
-        storage(self, willRun: transaction)
+    func run<T: DBOperation>(_ operation: T) async throws -> T.Result where T.Transaction == Transaction {
+        try await run(operation, readOnly: false)
+    }
+
+    @discardableResult
+    func run<T: DBReadOperation>(_ operation: T) async throws -> T.Result where T.Transaction == Transaction {
+        try await run(operation, readOnly: true)
+    }
+
+    func storage<T: DBOperation>(_ storage: Self, willRun operation: T) where T.Transaction == Transaction {
+
+    }
+
+    func storage<T: DBOperation>(_ storage: Self, didRun operation: T, withResult result: Result<T.Result, any Error>) where T.Transaction == Transaction {
+
+    }
+}
+
+private extension DBStorable {
+    /// The one path an operation runs through, whichever kind of transaction it
+    /// asked for — so the hooks are called once, here, and cannot be skipped by
+    /// picking the other one.
+    func run<T: DBOperation>(
+        _ operation: T,
+        readOnly: Bool
+    ) async throws -> T.Result where T.Transaction == Transaction {
+        storage(self, willRun: operation)
         do {
-            let result = try await execute(transaction, on: try await connect())
-            storage(self, didRun: transaction, withResult: .success(result))
-            
+            let result = try await open(readOnly: readOnly) { transaction in
+                try operation.execute(transaction)
+            }
+            storage(self, didRun: operation, withResult: .success(result))
+
             return result
         } catch {
-            storage(self, didRun: transaction, withResult: .failure(error))
+            storage(self, didRun: operation, withResult: .failure(error))
             throw error
         }
-    }
-    
-    func storage<T: DBTransaction>(_ storage: Self, willRun transaction: T) where T.Connection == Connection {
-        
-    }
-    
-    func storage<T: DBTransaction>(_ storage: Self, didRun transaction: T, withResult result: Result<T.Result, any Error>) where T.Connection == Connection {
-        
     }
 }
