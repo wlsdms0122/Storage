@@ -118,6 +118,23 @@ final class DBStorableTests: XCTestCase {
         XCTAssertEqual(hooks.value, ["willRun", "didRun"])
     }
 
+    // `Parameter` is resolved statically, so the assertion is that
+    // `ParameterlessDBTransaction` — which declares none — compiles at all. This
+    // runs it to keep the double from going unused.
+    func test_that_transaction_without_a_declared_parameter_runs() async throws {
+        // Given
+        let connection = ProxyConnection<[Int]>([0, 0])
+        let sut: any DBStorable<ProxyConnection<[Int]>> = ProxyDBStorage(
+            connect: { connection }
+        )
+
+        // When
+        let result = try await sut.run(ParameterlessDBTransaction())
+
+        // Then
+        XCTAssertEqual(result, 2)
+    }
+
     func test_that_reset_clears_all_data_in_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([0])

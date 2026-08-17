@@ -9,7 +9,10 @@ import Foundation
 
 public protocol DBTransaction: Sendable {
     associatedtype Connection
-    associatedtype Parameter
+    /// The transaction's input type. No requirement names it, so it can never be
+    /// inferred — without a default every conformer, including one that takes
+    /// nothing, has to spell it out.
+    associatedtype Parameter = Never
     associatedtype Result
     
     @discardableResult
