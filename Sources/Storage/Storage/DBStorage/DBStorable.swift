@@ -15,7 +15,7 @@ public protocol DBStorable<Connection>: Sendable {
     
     func reset() async throws
     
-    func storage<T: DBTransaction>(_ stroage: Self, willRun transaction: T) where T.Connection == Connection
+    func storage<T: DBTransaction>(_ storage: Self, willRun transaction: T) where T.Connection == Connection
     func storage<T: DBTransaction>(_ storage: Self, didRun transaction: T, withResult result: Result<T.Result, any Error>) where T.Connection == Connection
 }
 
@@ -38,7 +38,7 @@ public extension DBStorable {
         }
     }
     
-    func storage<T: DBTransaction>(_ stroage: Self, willRun transaction: T) where T.Connection == Connection {
+    func storage<T: DBTransaction>(_ storage: Self, willRun transaction: T) where T.Connection == Connection {
         
     }
     
