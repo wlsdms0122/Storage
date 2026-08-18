@@ -18,14 +18,25 @@ public protocol DBOperation: Sendable {
     associatedtype Parameter
     associatedtype Result
 
+    /// Whether this operation only reads, so the store can open a cheaper
+    /// transaction for it.
+    ///
+    /// It is a value on the operation rather than a type it conforms to,
+    /// because a type is read at the call site and an operation handed through
+    /// a generic parameter arrives with that reading already lost — silently,
+    /// as a read that takes the write lock. A value travels with the operation.
+    /// It also lets an operation composed of others answer by asking them.
+    ///
+    /// Whether writing through a read-only transaction is refused is the
+    /// database's answer, not this protocol's.
+    var readOnly: Bool { get }
+
     @discardableResult
     func execute(_ transaction: Transaction) throws -> Result
 }
 
-/// An operation that only reads.
-///
-/// It says so rather than being held to it: the storage opens a read-only
-/// transaction for it, which is what a database can do something with — skip
-/// the write lock, take a reader from the pool, route to a replica. Whether
-/// writing through one is refused is the database's answer, not this protocol's.
-public protocol DBReadOperation: DBOperation { }
+public extension DBOperation {
+    /// Writing is the assumption an operation is safe to be wrong about: a
+    /// write transaction runs a read correctly, and only pays for it.
+    var readOnly: Bool { false }
+}

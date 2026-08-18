@@ -17,21 +17,36 @@ struct CompositeDBOperation: DBOperation {
         typealias Parameter = Never
 
         let name: String
+        let readOnly: Bool
+        let log: ProxyConnection<[String]>
 
         // MARK: - Public
         func execute(_ transaction: OverridingDBStorage.Handle) throws {
-            CompositeDBOperation.log.value.append(name)
+            log.value.append(name)
         }
     }
 
     // MARK: - Property
     typealias Parameter = Never
 
-    nonisolated(unsafe) static let log = ProxyConnection<[String]>([])
+    let members: [Member]
+
+    /// Answered by asking the members, which is something only a value can do —
+    /// what this operation is depends on what it was built out of.
+    var readOnly: Bool { members.allSatisfy(\.readOnly) }
+
+    // MARK: - Initializer
+    init(log: ProxyConnection<[String]> = ProxyConnection([]), readOnly: Bool = false) {
+        self.members = [
+            Member(name: "first", readOnly: readOnly, log: log),
+            Member(name: "second", readOnly: readOnly, log: log)
+        ]
+    }
 
     // MARK: - Public
     func execute(_ transaction: OverridingDBStorage.Handle) throws {
-        try Member(name: "first").execute(transaction)
-        try Member(name: "second").execute(transaction)
+        for member in members {
+            try member.execute(transaction)
+        }
     }
 }

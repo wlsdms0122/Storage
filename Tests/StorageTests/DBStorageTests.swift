@@ -91,7 +91,7 @@ final class DBStorableTests: XCTestCase {
         )
 
         // When
-        let readOnly = try await sut.run(ProxyDBReadOperation(true) { _, handle in handle.readOnly })
+        let readOnly = try await sut.run(ProxyDBOperation(true, readOnly: true) { _, handle in handle.readOnly })
 
         // Then
         XCTAssertEqual(opened.value, ["read"])
@@ -109,7 +109,7 @@ final class DBStorableTests: XCTestCase {
 
         // When
         try await sut.run(ProxyDBOperation(true) { _, _ in })
-        try await sut.run(ProxyDBReadOperation(true) { _, _ in })
+        try await sut.run(ProxyDBOperation(true, readOnly: true) { _, _ in })
 
         // Then
         XCTAssertEqual(hooks.value, ["willRun", "didRun", "willRun", "didRun"])
@@ -124,12 +124,65 @@ final class DBStorableTests: XCTestCase {
             opened: { opened.value.append($0) }
         )
 
+        let log = ProxyConnection<[String]>([])
+
         // When
-        try await sut.run(CompositeDBOperation())
+        try await sut.run(CompositeDBOperation(log: log))
 
         // Then — one transaction, not one per member.
         XCTAssertEqual(opened.value, ["write"])
-        XCTAssertEqual(CompositeDBOperation.log.value, ["first", "second"])
+        XCTAssertEqual(log.value, ["first", "second"])
+    }
+
+    // A marker on the type could not have said this: what kind of transaction a
+    // composed operation needs is not a property of its type but of what it was
+    // built out of, which is known only once it exists.
+    func test_that_a_composed_operation_answers_from_its_members() async throws {
+        // Given
+        let connection = ProxyConnection<[Int]>([])
+        let opened = ProxyConnection<[String]>([])
+        let sut: any DBStorable<ProxyConnection<[Int]>, OverridingDBStorage.Handle> = OverridingDBStorage(
+            connect: { connection },
+            opened: { opened.value.append($0) }
+        )
+
+        // When
+        try await sut.run(CompositeDBOperation(readOnly: true))
+
+        // Then
+        XCTAssertEqual(opened.value, ["read"])
+    }
+
+    // `readOnly` travels with the operation, so it survives a generic parameter
+    // whose constraint says nothing about reading. An overload resolved from the
+    // static type could not — the call below would open a write transaction, and
+    // the read would take the write lock with nothing to report it.
+    func test_that_a_read_survives_being_passed_through_a_generic_parameter() async throws {
+        // Given
+        func hop<S: DBStorable, T: DBOperation>(
+            _ operation: T,
+            through storage: S
+        ) async throws -> T.Result where T.Transaction == S.Transaction {
+            try await storage.run(operation)
+        }
+
+        let connection = ProxyConnection<[Int]>([])
+        let opened = ProxyConnection<[String]>([])
+        let sut = OverridingDBStorage(
+            connect: { connection },
+            opened: { opened.value.append($0) }
+        )
+
+        // When
+        _ = try await hop(ProxyDBOperation(true) { _, handle in handle.readOnly }, through: sut)
+        let reading = try await hop(
+            ProxyDBOperation(true, readOnly: true) { _, handle in handle.readOnly },
+            through: sut
+        )
+
+        // Then
+        XCTAssertEqual(opened.value, ["write", "read"])
+        XCTAssertTrue(reading)
     }
 
     // `Parameter` is resolved statically, so the assertion is that

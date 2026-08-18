@@ -45,15 +45,11 @@ public extension DBStorable {
         try await migrate(connection: try await connect())
     }
 
-    /// An operation on its own — a transaction holding exactly this one.
+    /// An operation on its own — a transaction holding exactly this one, of the
+    /// kind the operation asked for.
     @discardableResult
     func run<T: DBOperation>(_ operation: T) async throws -> T.Result where T.Transaction == Transaction {
-        try await run(operation, readOnly: false)
-    }
-
-    @discardableResult
-    func run<T: DBReadOperation>(_ operation: T) async throws -> T.Result where T.Transaction == Transaction {
-        try await run(operation, readOnly: true)
+        try await run(operation, readOnly: operation.readOnly)
     }
 
     func storage<T: DBOperation>(_ storage: Self, willRun operation: T) where T.Transaction == Transaction {
