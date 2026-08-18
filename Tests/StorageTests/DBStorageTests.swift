@@ -98,23 +98,6 @@ final class DBStorableTests: XCTestCase {
         XCTAssertTrue(readOnly)
     }
 
-    func test_that_hooks_are_called_on_both_kinds_of_operation() async throws {
-        // Given
-        let connection = ProxyConnection<[Int]>([])
-        let hooks = ProxyConnection<[String]>([])
-        let sut: any DBStorable<ProxyConnection<[Int]>, OverridingDBStorage.Handle> = OverridingDBStorage(
-            connect: { connection },
-            hook: { hooks.value.append($0) }
-        )
-
-        // When
-        try await sut.run(ProxyDBOperation(true) { _, _ in })
-        try await sut.run(ProxyDBOperation(true, readOnly: true) { _, _ in })
-
-        // Then
-        XCTAssertEqual(hooks.value, ["willRun", "didRun", "willRun", "didRun"])
-    }
-
     func test_that_operations_composed_into_one_share_a_transaction() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])

@@ -26,17 +26,14 @@ final class OverridingDBStorage: DBStorable {
 
     private let _connect: @Sendable () throws -> ProxyConnection<[Int]>
     private let _opened: @Sendable (String) -> Void
-    private let _hook: @Sendable (String) -> Void
 
     // MARK: - Initializer
     init(
         connect: @escaping @Sendable () throws -> ProxyConnection<[Int]>,
-        opened: @escaping @Sendable (String) -> Void = { _ in },
-        hook: @escaping @Sendable (String) -> Void = { _ in }
+        opened: @escaping @Sendable (String) -> Void = { _ in }
     ) {
         self._connect = connect
         self._opened = opened
-        self._hook = hook
     }
 
     // MARK: - Lifecycle
@@ -63,11 +60,5 @@ final class OverridingDBStorage: DBStorable {
         return try body(Handle(readOnly: readOnly))
     }
 
-    func storage<T: DBOperation>(_ storage: OverridingDBStorage, willRun operation: T) where T.Transaction == Handle {
-        _hook("willRun")
-    }
 
-    func storage<T: DBOperation>(_ storage: OverridingDBStorage, didRun operation: T, withResult result: Result<T.Result, any Error>) where T.Transaction == Handle {
-        _hook("didRun")
-    }
 }
