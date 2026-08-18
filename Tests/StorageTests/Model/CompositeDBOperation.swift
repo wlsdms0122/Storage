@@ -14,6 +14,8 @@ import Foundation
 struct CompositeDBOperation: DBOperation {
     struct Member: DBOperation {
         // MARK: - Property
+        typealias Parameter = Never
+
         let name: String
 
         // MARK: - Public
@@ -23,6 +25,8 @@ struct CompositeDBOperation: DBOperation {
     }
 
     // MARK: - Property
+    typealias Parameter = Never
+
     nonisolated(unsafe) static let log = ProxyConnection<[String]>([])
 
     // MARK: - Public

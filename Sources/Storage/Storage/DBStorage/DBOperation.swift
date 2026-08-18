@@ -14,10 +14,8 @@ import Foundation
 /// operation built out of other operations still an operation.
 public protocol DBOperation: Sendable {
     associatedtype Transaction
-    /// The operation's input type. No requirement names it, so it can never be
-    /// inferred — without a default every conformer, including one that takes
-    /// nothing, has to spell it out.
-    associatedtype Parameter = Never
+    /// What the operation takes — `Never` when it takes nothing.
+    associatedtype Parameter
     associatedtype Result
 
     @discardableResult

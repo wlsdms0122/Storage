@@ -8,9 +8,11 @@
 import Foundation
 @testable import Storage
 
-/// An operation that takes nothing. It names no `Parameter`, which is the point:
-/// this only compiles because the protocol defaults it.
+/// An operation that takes nothing — and says so.
 struct ParameterlessDBOperation: DBOperation {
+    // MARK: - Property
+    typealias Parameter = Never
+
     // MARK: - Lifecycle
     func execute(_ transaction: ProxyConnection<[Int]>) throws -> Int {
         transaction.value.count
