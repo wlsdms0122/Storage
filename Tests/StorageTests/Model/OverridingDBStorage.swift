@@ -11,7 +11,7 @@ import Foundation
 /// A storage whose transaction is not its connection, and which separates the
 /// read-only one — the shape this abstraction exists for. It records what it
 /// opened, so a test can say which kind an operation was given.
-final class OverridingDBStorage: DBStorable {
+final class OverridingDBStorage: DBDriver, DBStorable {
     struct Handle {
         // MARK: - Property
         let readOnly: Bool
@@ -37,6 +37,10 @@ final class OverridingDBStorage: DBStorable {
     }
 
     // MARK: - Lifecycle
+    func initialize() async throws {
+        try await migrate(connection: try connect())
+    }
+
     func connect() throws -> ProxyConnection<[Int]> {
         if let connection {
             return connection
@@ -59,6 +63,5 @@ final class OverridingDBStorage: DBStorable {
 
         return try body(Handle(readOnly: readOnly))
     }
-
 
 }

@@ -18,7 +18,7 @@ final class DBStorableTests: XCTestCase {
     func test_that_initialize_calls_connect_in_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut: any DBStorable = ProxyDBStorage(
+        let sut: any DBDriver = ProxyDBStorage(
             connect: {
                 connection.value.append(0)
                 return connection
@@ -35,7 +35,7 @@ final class DBStorableTests: XCTestCase {
     func test_that_initialize_calls_migration_in_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut: any DBStorable = ProxyDBStorage(
+        let sut: any DBDriver = ProxyDBStorage(
             connect: { connection },
             migrate: { _ in connection.value.append(0) }
         )
@@ -50,9 +50,7 @@ final class DBStorableTests: XCTestCase {
     func test_that_operation_is_applied_when_run_on_storage() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut: any DBStorable<ProxyConnection<[Int]>, ProxyConnection<[Int]>> = ProxyDBStorage(
-            connect: { connection }
-        )
+        let sut = ProxyDBStorage(connect: { connection })
         try await sut.initialize()
         
         // When
@@ -68,7 +66,7 @@ final class DBStorableTests: XCTestCase {
         // Given
         let connection = ProxyConnection<[Int]>([])
         let opened = ProxyConnection<[String]>([])
-        let sut: any DBStorable<ProxyConnection<[Int]>, OverridingDBStorage.Handle> = OverridingDBStorage(
+        let sut: any DBStorable<OverridingDBStorage.Handle> = OverridingDBStorage(
             connect: { connection },
             opened: { opened.value.append($0) }
         )
@@ -85,7 +83,7 @@ final class DBStorableTests: XCTestCase {
         // Given
         let connection = ProxyConnection<[Int]>([])
         let opened = ProxyConnection<[String]>([])
-        let sut: any DBStorable<ProxyConnection<[Int]>, OverridingDBStorage.Handle> = OverridingDBStorage(
+        let sut: any DBStorable<OverridingDBStorage.Handle> = OverridingDBStorage(
             connect: { connection },
             opened: { opened.value.append($0) }
         )
@@ -102,7 +100,7 @@ final class DBStorableTests: XCTestCase {
         // Given
         let connection = ProxyConnection<[Int]>([])
         let opened = ProxyConnection<[String]>([])
-        let sut: any DBStorable<ProxyConnection<[Int]>, OverridingDBStorage.Handle> = OverridingDBStorage(
+        let sut: any DBStorable<OverridingDBStorage.Handle> = OverridingDBStorage(
             connect: { connection },
             opened: { opened.value.append($0) }
         )
@@ -124,7 +122,7 @@ final class DBStorableTests: XCTestCase {
         // Given
         let connection = ProxyConnection<[Int]>([])
         let opened = ProxyConnection<[String]>([])
-        let sut: any DBStorable<ProxyConnection<[Int]>, OverridingDBStorage.Handle> = OverridingDBStorage(
+        let sut: any DBStorable<OverridingDBStorage.Handle> = OverridingDBStorage(
             connect: { connection },
             opened: { opened.value.append($0) }
         )
@@ -174,7 +172,7 @@ final class DBStorableTests: XCTestCase {
     func test_that_operation_without_a_declared_parameter_runs() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([0, 0])
-        let sut: any DBStorable<ProxyConnection<[Int]>, ProxyConnection<[Int]>> = ProxyDBStorage(
+        let sut: any DBStorable<ProxyConnection<[Int]>> = ProxyDBStorage(
             connect: { connection }
         )
 
@@ -185,10 +183,12 @@ final class DBStorableTests: XCTestCase {
         XCTAssertEqual(result, 2)
     }
 
-    func test_that_reset_clears_all_data_in_storage() async throws {
+    // Reset is the driver's — emptying the database is the same kind of work as
+    // creating its schema.
+    func test_that_reset_clears_all_data_in_the_driver() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([0])
-        let sut: any DBStorable<ProxyConnection<[Int]>, ProxyConnection<[Int]>> = ProxyDBStorage(
+        let sut = ProxyDBStorage(
             connect: { connection },
             reset: { _ in connection.value.removeAll() }
         )

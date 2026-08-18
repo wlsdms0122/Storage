@@ -10,19 +10,19 @@ import Foundation
 
 final class ProxyConnection<Connection: Sendable>: Sendable {
     nonisolated(unsafe) var value: Connection
-    
+
     init(_ value: Connection) {
         self.value = value
     }
 }
 
-final class ProxyDBStorage<Connection: Sendable>: DBStorable {
+final class ProxyDBStorage<Connection: Sendable>: DBDriver, DBStorable {
     private nonisolated(unsafe) var connection: Connection?
-    
+
     private let _connect: @Sendable () throws -> Connection
     private let _migrate: @Sendable (Connection) async throws -> Void
     private let _reset: @Sendable (Connection?) async throws -> Void
-    
+
     init(
         connect: @escaping @Sendable () throws -> Connection,
         migrate: @escaping @Sendable (Connection) async throws -> Void = { _ in },
@@ -32,26 +32,32 @@ final class ProxyDBStorage<Connection: Sendable>: DBStorable {
         self._migrate = migrate
         self._reset = reset
     }
-    
+
     func connect() throws -> Connection {
         if let connection {
             return connection
         }
-        
+
         let connection = try _connect()
         self.connection = connection
-        
+
         return connection
     }
-    
+
     func migrate(connection: Connection) async throws {
         try await _migrate(connection)
     }
-    
+
+    // Connect then migrate — an order this double owns rather than one the
+    // protocol handed it.
+    func initialize() async throws {
+        try await migrate(connection: try connect())
+    }
+
     func reset() async throws {
         try await _reset(connection)
     }
-    
+
     // The connection is the transaction here — the shape of a database that does
     // not hand out a separate handle, and that has nothing cheaper to offer a
     // read.
