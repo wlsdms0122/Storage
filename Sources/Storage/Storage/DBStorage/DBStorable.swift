@@ -31,14 +31,3 @@ public protocol DBStorable<Transaction>: Sendable {
     /// distinguish the two ignores it, in the open.
     func open<T>(readOnly: Bool, _ body: @escaping @Sendable (Transaction) throws -> T) async throws -> T
 }
-
-public extension DBStorable {
-    /// An operation on its own — a transaction holding exactly this one, of the
-    /// kind the operation asked for.
-    @discardableResult
-    func run<T: DBOperation>(_ operation: T) async throws -> T.Result where T.Transaction == Transaction {
-        try await open(readOnly: operation.readOnly) { transaction in
-            try operation.execute(transaction)
-        }
-    }
-}

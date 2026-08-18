@@ -11,65 +11,67 @@ import XCTest
 
 final class DBStorableTests: XCTestCase {
     // MARK: - Property
-    
+
     // MARK: - Lifecycle
-    
+
     // MARK: - Test
-    func test_that_initialize_calls_connect_in_storage() async throws {
+    // There is no way to reach a `DB` without going through the driver first,
+    // so these two say what `connect` is obliged to have done by the time it
+    // hands one back.
+    func test_that_connecting_a_db_connects_the_driver() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut: any DBDriver = ProxyDBStorage(
+        let driver = ProxyDBStorage(
             connect: {
                 connection.value.append(0)
                 return connection
             }
         )
-        
+
         // When
-        try await sut.initialize()
-        
+        _ = try await DB.connect(driver)
+
         // Then
         XCTAssertEqual(connection.value.count, 1)
     }
-    
-    func test_that_initialize_calls_migration_in_storage() async throws {
+
+    func test_that_connecting_a_db_migrates_the_driver() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut: any DBDriver = ProxyDBStorage(
+        let driver = ProxyDBStorage(
             connect: { connection },
             migrate: { _ in connection.value.append(0) }
         )
-        
+
         // When
-        try await sut.initialize()
-        
+        _ = try await DB.connect(driver)
+
         // Then
         XCTAssertEqual(connection.value.count, 1)
     }
-    
-    func test_that_operation_is_applied_when_run_on_storage() async throws {
+
+    func test_that_operation_is_applied_when_run_on_db() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
-        let sut = ProxyDBStorage(connect: { connection })
-        try await sut.initialize()
-        
+        let sut = try await DB.connect(ProxyDBStorage(connect: { connection }))
+
         // When
         try await sut.run(ProxyDBOperation(true) { parameter, connection in
             connection.value.append(0)
         })
-        
+
         // Then
         XCTAssertEqual(connection.value.count, 1)
     }
-    
-    func test_that_storage_opens_a_write_transaction_for_an_operation() async throws {
+
+    func test_that_db_opens_a_write_transaction_for_an_operation() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
         let opened = ProxyConnection<[String]>([])
-        let sut: any DBStorable<OverridingDBStorage.Handle> = OverridingDBStorage(
+        let sut = try await DB.connect(OverridingDBStorage(
             connect: { connection },
             opened: { opened.value.append($0) }
-        )
+        ))
 
         // When
         let readOnly = try await sut.run(ProxyDBOperation(true) { _, handle in handle.readOnly })
@@ -79,14 +81,14 @@ final class DBStorableTests: XCTestCase {
         XCTAssertFalse(readOnly)
     }
 
-    func test_that_storage_opens_a_read_transaction_for_a_read_operation() async throws {
+    func test_that_db_opens_a_read_transaction_for_a_read_operation() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([])
         let opened = ProxyConnection<[String]>([])
-        let sut: any DBStorable<OverridingDBStorage.Handle> = OverridingDBStorage(
+        let sut = try await DB.connect(OverridingDBStorage(
             connect: { connection },
             opened: { opened.value.append($0) }
-        )
+        ))
 
         // When
         let readOnly = try await sut.run(ProxyDBOperation(true, readOnly: true) { _, handle in handle.readOnly })
@@ -100,10 +102,10 @@ final class DBStorableTests: XCTestCase {
         // Given
         let connection = ProxyConnection<[Int]>([])
         let opened = ProxyConnection<[String]>([])
-        let sut: any DBStorable<OverridingDBStorage.Handle> = OverridingDBStorage(
+        let sut = try await DB.connect(OverridingDBStorage(
             connect: { connection },
             opened: { opened.value.append($0) }
-        )
+        ))
 
         let log = ProxyConnection<[String]>([])
 
@@ -122,10 +124,10 @@ final class DBStorableTests: XCTestCase {
         // Given
         let connection = ProxyConnection<[Int]>([])
         let opened = ProxyConnection<[String]>([])
-        let sut: any DBStorable<OverridingDBStorage.Handle> = OverridingDBStorage(
+        let sut = try await DB.connect(OverridingDBStorage(
             connect: { connection },
             opened: { opened.value.append($0) }
-        )
+        ))
 
         // When
         try await sut.run(CompositeDBOperation(readOnly: true))
@@ -140,22 +142,24 @@ final class DBStorableTests: XCTestCase {
     // the read would take the write lock with nothing to report it.
     func test_that_a_read_survives_being_passed_through_a_generic_parameter() async throws {
         // Given
-        func hop<S: DBStorable, T: DBOperation>(
+        func hop<T: DBOperation>(
             _ operation: T,
-            through storage: S
-        ) async throws -> T.Result where T.Transaction == S.Transaction {
-            try await storage.run(operation)
+            through db: DB<OverridingDBStorage.Handle>
+        ) async throws -> T.Result where T.Transaction == OverridingDBStorage.Handle {
+            try await db.run(operation)
         }
 
         let connection = ProxyConnection<[Int]>([])
         let opened = ProxyConnection<[String]>([])
-        let sut = OverridingDBStorage(
+        let sut = try await DB.connect(OverridingDBStorage(
             connect: { connection },
             opened: { opened.value.append($0) }
-        )
+        ))
 
         // When
-        _ = try await hop(ProxyDBOperation(true) { _, handle in handle.readOnly }, through: sut)
+        let readOnly = try await hop(ProxyDBOperation(true) { _, handle in handle.readOnly }, through: sut)
+        _ = readOnly
+
         let reading = try await hop(
             ProxyDBOperation(true, readOnly: true) { _, handle in handle.readOnly },
             through: sut
@@ -167,14 +171,12 @@ final class DBStorableTests: XCTestCase {
     }
 
     // `Parameter` is resolved statically, so the assertion is that
-    // `ParameterlessDBOperation` — which declares none — compiles at all. This
-    // runs it to keep the double from going unused.
-    func test_that_operation_without_a_declared_parameter_runs() async throws {
+    // `ParameterlessDBOperation` — which declares `Never` — compiles at all.
+    // This runs it to keep the double from going unused.
+    func test_that_operation_taking_nothing_declares_it_and_runs() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([0, 0])
-        let sut: any DBStorable<ProxyConnection<[Int]>> = ProxyDBStorage(
-            connect: { connection }
-        )
+        let sut = try await DB.connect(ProxyDBStorage(connect: { connection }))
 
         // When
         let result = try await sut.run(ParameterlessDBOperation())
@@ -183,20 +185,21 @@ final class DBStorableTests: XCTestCase {
         XCTAssertEqual(result, 2)
     }
 
-    // Reset is the driver's — emptying the database is the same kind of work as
-    // creating its schema.
+    // Reset is the driver's, not the db's — emptying the database is the same
+    // kind of work as creating its schema, and neither is something a caller
+    // handed a `DB` gets to do.
     func test_that_reset_clears_all_data_in_the_driver() async throws {
         // Given
         let connection = ProxyConnection<[Int]>([0])
-        let sut = ProxyDBStorage(
+        let driver = ProxyDBStorage(
             connect: { connection },
             reset: { _ in connection.value.removeAll() }
         )
-        try await sut.initialize()
-        
+        try await driver.initialize()
+
         // When
-        try await sut.reset()
-        
+        try await driver.reset()
+
         // Then
         XCTAssertEqual(connection.value.count, 0)
     }
